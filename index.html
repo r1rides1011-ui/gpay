@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Google Pay Key Diagnostic Tester</title>
+<script src="https://pay.google.com/gp/p/js/pay.js"></script>
+<style>
+  body {
+    font-family: "Inter", sans-serif;
+    background: #0d1117;
+    color: #f0f6fc;
+    padding: 30px;
+  }
+  pre { background: #161b22; padding: 15px; border-radius: 8px; overflow-x: auto; }
+  button {
+    background: #238636; color: white; border: none;
+    padding: 10px 20px; border-radius: 6px; font-size: 16px; cursor: pointer;
+  }
+  h1 { color: #58a6ff; }
+</style>
+</head>
+<body>
+<h1>🧠 Google Pay Tokenization & SDK Diagnostic</h1>
+<p>Click “Run Diagnostics” to verify tokenization key, environment, and full SDK readiness.</p>
+<button onclick="runDiagnostics()">▶ Run Diagnostics</button>
+<pre id="output">Awaiting test...</pre>
+
+<script>
+async function runDiagnostics() {
+  const out = document.getElementById("output");
+  const log = (...args) => out.textContent += "\n" + args.join(" ");
+
+  out.textContent = "🚀 Starting Google Pay diagnostics...\n";
+
+  const baseRequest = { apiVersion: 2, apiVersionMinor: 0 };
+
+  // ✏️ Replace below with your actual values
+  const tokenizationSpecification = {
+    type: "PAYMENT_GATEWAY",
+    parameters: {
+      gateway: "paytm",           // ← your gateway name
+      gatewayMerchantId: "27m9gvdh2fdm8t4x",  // ← your merchant ID
+      googlePayTokenizationKey: "production_rgxd4zx6_27m9gvdh2fdm8t4x"
+    }
+  };
+
+  const allowedCardNetworks = ["VISA", "MASTERCARD"];
+  const allowedCardAuthMethods = ["PAN_ONLY", "CRYPTOGRAM_3DS"];
+  const cardPaymentMethod = {
+    type: "CARD",
+    parameters: {
+      allowedAuthMethods: allowedCardAuthMethods,
+      allowedCardNetworks: allowedCardNetworks,
+      billingAddressRequired: true,
+      billingAddressParameters: { format: "FULL" }
+    },
+    tokenizationSpecification
+  };
+
+  const paymentsClient = new google.payments.api.PaymentsClient({ environment: "PRODUCTION" });
+
+  try {
+    const ready = await paymentsClient.isReadyToPay({
+      ...baseRequest, allowedPaymentMethods: [cardPaymentMethod]
+    });
+    log("✅ isReadyToPay:", JSON.stringify(ready, null, 2));
+
+    if (ready.result) {
+      const request = {
+        ...baseRequest,
+        allowedPaymentMethods: [cardPaymentMethod],
+        transactionInfo: {
+          totalPriceStatus: "FINAL",
+          totalPrice: "1.00",
+          currencyCode: "INR",
+          countryCode: "IN"
+        },
+        merchantInfo: { merchantName: "Diagnostic Tester" }
+      };
+
+      try {
+        const paymentData = await paymentsClient.loadPaymentData(request);
+        log("💳 PaymentData response:", JSON.stringify(paymentData, null, 2));
+      } catch (err) {
+        log("⚠️ PaymentData cancelled or blocked:", err.message);
+      }
+    }
+  } catch (err) {
+    log("❌ SDK error:", err.message);
+  }
+
+  log("\n✅ Diagnostics complete.");
+}
+</script>
+</body>
+</html>
