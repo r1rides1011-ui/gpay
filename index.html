@@ -1,96 +1,480 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Google Pay Key Diagnostic Tester</title>
-<script src="https://pay.google.com/gp/p/js/pay.js"></script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Everything Web Demo — Permissions • BLE • Audio • Power • Tabs</title>
 <style>
-  body {
-    font-family: "Inter", sans-serif;
-    background: #0d1117;
-    color: #f0f6fc;
-    padding: 30px;
+  :root{
+    --bg:#0b1220;--card:#0f172a;--ink:#e5e7eb;--mut:#9ca3af;--acc:#3b82f6;--ok:#10b981;--warn:#f59e0b;--err:#ef4444;--border:#1f2a3b;
   }
-  pre { background: #161b22; padding: 15px; border-radius: 8px; overflow-x: auto; }
-  button {
-    background: #238636; color: white; border: none;
-    padding: 10px 20px; border-radius: 6px; font-size: 16px; cursor: pointer;
-  }
-  h1 { color: #58a6ff; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(1200px 600px at 60% -10%,#1d2a4a33,transparent),var(--bg);color:var(--ink)}
+  header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,rgba(11,18,32,.95),rgba(11,18,32,.75));backdrop-filter:blur(8px);border-bottom:1px solid #1f2937}
+  .wrap{max-width:1180px;margin:0 auto;padding:.7rem 1rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+  .brand{display:flex;gap:.6rem;align-items:center}
+  .logo{width:28px;height:28px;border-radius:8px;background:conic-gradient(from 0deg,#3b82f6,#10b981,#a855f7,#3b82f6);filter:contrast(1.2) saturate(1.2)}
+  .tabs{display:flex;gap:.35rem;flex-wrap:wrap}
+  .tab{color:var(--mut);text-decoration:none;padding:.42rem .72rem;border-radius:10px;border:1px solid transparent}
+  .tab.active,.tab:hover{color:#fff;background:#121a2b;border-color:#213149}
+  main{max-width:1180px;margin:1rem auto;padding:0 1rem 2rem}
+  section.panel{background:linear-gradient(180deg,#0e172a,#0b1220);border:1px solid var(--border);border-radius:16px;padding:1rem;margin:1rem 0;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(6px);pointer-events:none}
+  section.panel.active{opacity:1;transform:none;transition:opacity .28s ease, transform .28s ease;pointer-events:auto}
+  h2{margin:.2rem 0 1rem 0}
+  .row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+  .col{display:flex;flex-direction:column;gap:.6rem}
+  button{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:.6rem .9rem;cursor:pointer}
+  button.alt{background:var(--ok)}
+  button.ghost{background:#1f2937}
+  button.warn{background:var(--warn)}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  input,select{background:#0b1220;border:1px solid #1f2937;border-radius:10px;color:var(--ink);padding:.55rem .7rem}
+  .out{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0b1220;border:1px dashed #223047;color:#cbd5e1;padding:.6rem;border-radius:10px;white-space:pre-wrap;min-height:2.4rem}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  canvas{width:100%;height:140px;background:#030712;border-radius:12px}
+  .badge{display:inline-block;font-size:.8rem;color:#cbd5e1;background:#1f2937;border:1px solid #2a364a;border-radius:999px;padding:.15rem .6rem}
+  footer{color:var(--mut);text-align:center;padding:1.2rem}
+  /* Floating windows/modals */
+  .window{position:fixed;top:80px;left:80px;min-width:280px;max-width:90vw;min-height:120px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.35);display:none;z-index:1000}
+  .window.active{display:block;animation:pop .18s ease}
+  @keyframes pop{from{transform:scale(.98);opacity:.5}to{transform:none;opacity:1}}
+  .win-head{display:flex;justify-content:space-between;align-items:center;padding:.5rem .7rem;border-bottom:1px solid var(--border);cursor:move}
+  .win-title{font-weight:600}
+  .win-actions{display:flex;gap:.35rem}
+  .win-actions button{padding:.25rem .5rem;border-radius:8px}
+  .win-body{padding:.7rem}
 </style>
 </head>
 <body>
-<h1>🧠 Google Pay Tokenization & SDK Diagnostic</h1>
-<p>Click “Run Diagnostics” to verify tokenization key, environment, and full SDK readiness.</p>
-<button onclick="runDiagnostics()">▶ Run Diagnostics</button>
-<pre id="output">Awaiting test...</pre>
+<header>
+  <div class="wrap">
+    <div class="brand"><div class="logo"></div><div><strong>Everything Web Demo</strong><div style="font-size:.85rem;color:var(--mut)">Permissions • BLE • Audio • Power • Tabs</div></div></div>
+    <nav class="tabs" id="tabs">
+      <a class="tab active" data-panel="ip">IP & Location</a>
+      <a class="tab" data-panel="audio">Audio</a>
+      <a class="tab" data-panel="ble">Bluetooth</a>
+      <a class="tab" data-panel="power">Battery/Network/Wake</a>
+      <a class="tab" data-panel="clip">Clipboard & File</a>
+      <a class="tab" data-panel="notify">Notifications</a>
+      <a class="tab" data-panel="perms">Permissions</a>
+      <a class="tab" data-panel="history">History & Visibility</a>
+      <a class="tab" data-panel="tabsync">Tab Sync</a>
+    </nav>
+    <div class="row" style="margin-left:auto">
+      <button class="ghost" id="openWindow">Open Floating Window</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- IP & Location -->
+  <section class="panel active" id="panel-ip">
+    <h2>🌐 IP & Location</h2>
+    <div class="row">
+      <button id="btnIp">Get Public IP</button>
+      <button id="btnGeo">Browser Geolocation</button>
+      <button id="btnIpGeo">IP Geolocation (best effort)</button>
+    </div>
+    <div class="out" id="ipOut">Try the buttons. IP uses public endpoints; geolocation will ask permission.</div>
+  </section>
+
+  <!-- Audio -->
+  <section class="panel" id="panel-audio">
+    <h2>🎧 Audio: Tone & Microphone Visualization</h2>
+    <div class="grid">
+      <div class="col">
+        <div class="row">
+          <select id="wave">
+            <option value="sine">sine</option>
+            <option value="square">square</option>
+            <option value="sawtooth">sawtooth</option>
+            <option value="triangle">triangle</option>
+          </select>
+          <input id="freq" type="number" value="440" min="40" max="2000" step="1" title="Frequency (Hz)"/>
+          <button id="toneStart">Start Tone</button>
+          <button class="ghost" id="toneStop">Stop Tone</button>
+        </div>
+        <div class="row">
+          <button id="micStart" class="alt">Start Mic Viz</button>
+          <button id="micStop" class="ghost">Stop Mic</button>
+          <span class="badge" id="audioBadge">idle</span>
+        </div>
+        <div class="out" id="audioOut">Change wave+frequency, start tone or mic. The analyzer renders to the right.</div>
+      </div>
+      <div>
+        <canvas id="analyser"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bluetooth -->
+  <section class="panel" id="panel-ble">
+    <h2>🛰️ Bluetooth (Web Bluetooth — BLE GATT)</h2>
+    <p class="badge">Note: Browsers cannot stream audio via BLE; OS handles classic BT audio. This connects to BLE sensors/IoT.</p>
+    <div class="row">
+      <button id="bleReq">Request Device</button>
+      <button id="bleList" class="ghost">List Services/Characteristics</button>
+      <button id="bleDisc" class="warn">Disconnect</button>
+    </div>
+    <div class="out" id="bleOut">Idle. Requires HTTPS or localhost and a user gesture.</div>
+  </section>
+
+  <!-- Battery / Network / Wake -->
+  <section class="panel" id="panel-power">
+    <h2>⚡ Battery • 📶 Network • 💤 Wake Lock</h2>
+    <div class="grid">
+      <div class="col">
+        <h3>Battery</h3>
+        <div class="row">
+          <button id="batGet">Get Battery</button>
+          <button id="batWatch" class="ghost">Watch</button>
+          <button id="batStop" class="ghost">Stop</button>
+        </div>
+        <div class="out" id="batOut">Battery not queried.</div>
+      </div>
+      <div class="col">
+        <h3>Network & Wake Lock</h3>
+        <div class="row">
+          <button id="netGet">Network Info</button>
+          <button id="wakeOn" class="alt">Wake Lock On</button>
+          <button id="wakeOff" class="ghost">Wake Lock Off</button>
+        </div>
+        <div class="out" id="netOut">Network/Wake status.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Clipboard & File -->
+  <section class="panel" id="panel-clip">
+    <h2>📋 Clipboard & 📁 File Read</h2>
+    <div class="row">
+      <input id="clipText" value="Text to copy" style="min-width:240px"/>
+      <button id="copyBtn">Copy</button>
+      <button id="readClipBtn" class="ghost">Read Clipboard</button>
+    </div>
+    <div class="row" style="margin-top:.5rem">
+      <input id="fileInp" type="file" accept=".txt">
+      <button id="readFile">Read File</button>
+    </div>
+    <div class="out" id="clipOut">Clipboard/file output.</div>
+  </section>
+
+  <!-- Notifications -->
+  <section class="panel" id="panel-notify">
+    <h2>🔔 Notifications</h2>
+    <div class="row">
+      <button id="permBtn">Check/Request Permission</button>
+      <button id="notifyBtn" class="ghost">Show Notification</button>
+    </div>
+    <div class="out" id="permOut">permission not checked</div>
+  </section>
+
+  <!-- Permissions Inspector -->
+  <section class="panel" id="panel-perms">
+    <h2>🔎 Permissions Inspector</h2>
+    <p class="badge">Queries many common permissions (some names may not be supported on all browsers).</p>
+    <div class="row">
+      <button id="inspectPerms">Inspect Permissions</button>
+    </div>
+    <div class="out" id="permInspectOut">Permissions not inspected.</div>
+  </section>
+
+  <!-- History / Visibility -->
+  <section class="panel" id="panel-history">
+    <h2>🧭 History API & Page Visibility</h2>
+    <div class="row">
+      <button id="pushHome">push /</button>
+      <button id="pushAbout">push /about</button>
+      <button id="repUpdated">replace /updated</button>
+      <button id="showHist" class="ghost">Show App History</button>
+      <span class="badge" id="visBadge">visibility: visible</span>
+    </div>
+    <div class="out" id="histOut">Try navigation, then Back/Forward.</div>
+  </section>
+
+  <!-- Tab Sync -->
+  <section class="panel" id="panel-tabsync">
+    <h2>🪟 Cross-Tab Sync (BroadcastChannel + storage)</h2>
+    <p class="badge">Open this page in another tab to see messages in real time.</p>
+    <div class="row">
+      <input id="tabMsg" placeholder="Message to other tabs" style="min-width:260px"/>
+      <button id="tabSend">Send</button>
+      <button id="tabPing" class="ghost">Ping (timestamp)</button>
+    </div>
+    <div class="out" id="tabOut">No tab messages yet.</div>
+  </section>
+</main>
+
+<footer>Some features need HTTPS/localhost & user permission. Global browser history, other tabs’ content, and Bluetooth audio streaming are not exposed to websites by design.</footer>
+
+<!-- Floating modal/window -->
+<div class="window" id="floatWin">
+  <div class="win-head" id="dragHandle">
+    <div class="win-title">Floating Tools</div>
+    <div class="win-actions">
+      <button id="floatMini" class="ghost" title="Minimize">–</button>
+      <button id="floatClose" class="warn" title="Close">×</button>
+    </div>
+  </div>
+  <div class="win-body">
+    <div class="row" style="margin-bottom:.6rem">
+      <button id="winGeo" class="alt">Quick Geo</button>
+      <button id="winWake" class="ghost">Toggle Wake</button>
+      <button id="winTone" class="ghost">Tone 440Hz</button>
+    </div>
+    <div class="out" id="floatOut">Use quick actions here while you browse tabs.</div>
+  </div>
+</div>
 
 <script>
-async function runDiagnostics() {
-  const out = document.getElementById("output");
-  const log = (...args) => out.textContent += "\n" + args.join(" ");
-
-  out.textContent = "🚀 Starting Google Pay diagnostics...\n";
-
-  const baseRequest = { apiVersion: 2, apiVersionMinor: 0 };
-
-  // ✏️ Replace below with your actual values
-  const tokenizationSpecification = {
-    type: "PAYMENT_GATEWAY",
-    parameters: {
-      gateway: "paytm",           // ← your gateway name
-      gatewayMerchantId: "27m9gvdh2fdm8t4x",  // ← your merchant ID
-      googlePayTokenizationKey: "production_rgxd4zx6_27m9gvdh2fdm8t4x"
-    }
-  };
-
-  const allowedCardNetworks = ["VISA", "MASTERCARD"];
-  const allowedCardAuthMethods = ["PAN_ONLY", "CRYPTOGRAM_3DS"];
-  const cardPaymentMethod = {
-    type: "CARD",
-    parameters: {
-      allowedAuthMethods: allowedCardAuthMethods,
-      allowedCardNetworks: allowedCardNetworks,
-      billingAddressRequired: true,
-      billingAddressParameters: { format: "FULL" }
-    },
-    tokenizationSpecification
-  };
-
-  const paymentsClient = new google.payments.api.PaymentsClient({ environment: "PRODUCTION" });
-
-  try {
-    const ready = await paymentsClient.isReadyToPay({
-      ...baseRequest, allowedPaymentMethods: [cardPaymentMethod]
-    });
-    log("✅ isReadyToPay:", JSON.stringify(ready, null, 2));
-
-    if (ready.result) {
-      const request = {
-        ...baseRequest,
-        allowedPaymentMethods: [cardPaymentMethod],
-        transactionInfo: {
-          totalPriceStatus: "FINAL",
-          totalPrice: "1.00",
-          currencyCode: "INR",
-          countryCode: "IN"
-        },
-        merchantInfo: { merchantName: "Diagnostic Tester" }
-      };
-
-      try {
-        const paymentData = await paymentsClient.loadPaymentData(request);
-        log("💳 PaymentData response:", JSON.stringify(paymentData, null, 2));
-      } catch (err) {
-        log("⚠️ PaymentData cancelled or blocked:", err.message);
-      }
-    }
-  } catch (err) {
-    log("❌ SDK error:", err.message);
-  }
-
-  log("\n✅ Diagnostics complete.");
+/* ============ Tabbed UI ============ */
+const tabs = document.querySelectorAll('.tab');
+const panels = Array.from(document.querySelectorAll('.panel'));
+function showPanel(name){
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.panel===name));
+  panels.forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
 }
+document.getElementById('tabs').addEventListener('click', e=>{
+  const t = e.target.closest('.tab'); if(!t) return;
+  showPanel(t.dataset.panel);
+});
+showPanel('ip');
+
+/* ============ Floating window (draggable, minimize) ============ */
+const win = document.getElementById('floatWin');
+const drag = document.getElementById('dragHandle');
+const openWindowBtn = document.getElementById('openWindow');
+document.getElementById('floatClose').onclick = ()=> win.classList.remove('active');
+document.getElementById('floatMini').onclick = ()=>{
+  const b = win.querySelector('.win-body');
+  b.style.display = b.style.display === 'none' ? 'block' : 'none';
+};
+openWindowBtn.onclick = ()=> { win.style.top='80px'; win.style.left='80px'; win.classList.add('active'); };
+let ox=0, oy=0, dragging=false;
+drag.addEventListener('pointerdown', e=>{ dragging=true; ox=e.clientX - win.offsetLeft; oy=e.clientY - win.offsetTop; drag.setPointerCapture(e.pointerId); });
+drag.addEventListener('pointermove', e=>{ if(!dragging) return; win.style.left = Math.max(0, e.clientX-ox)+'px'; win.style.top = Math.max(0, e.clientY-oy)+'px'; });
+drag.addEventListener('pointerup', ()=> dragging=false);
+
+/* ============ Helpers ============ */
+const el = id => document.getElementById(id);
+const logTo = (id, msg) => el(id).textContent = String(msg);
+const appendTo = (id, msg) => el(id).textContent += (el(id).textContent ? "\n" : "") + String(msg);
+
+/* ============ IP & Location ============ */
+el('btnIp').onclick = async ()=>{
+  logTo('ipOut','Fetching IP…');
+  try{
+    const r = await fetch('https://api.ipify.org?format=json',{cache:'no-store'});
+    const j = await r.json();
+    appendTo('ipOut', 'Public IP: ' + j.ip);
+  }catch(e){ appendTo('ipOut','IP fetch failed: '+e); }
+};
+el('btnGeo').onclick = ()=>{
+  if(!navigator.geolocation) return appendTo('ipOut','Geolocation not supported.');
+  navigator.geolocation.getCurrentPosition(
+    p => appendTo('ipOut', `Geo (browser): lat ${p.coords.latitude.toFixed(6)} lon ${p.coords.longitude.toFixed(6)} ±${p.coords.accuracy}m`),
+    e => appendTo('ipOut', 'Geolocation error: '+e.message),
+    {enableHighAccuracy:true, timeout:10000}
+  );
+};
+el('btnIpGeo').onclick = async ()=>{
+  appendTo('ipOut','IP geolocation (best effort)…');
+  try{
+    let r = await fetch('https://ipapi.co/json/',{cache:'no-store'});
+    if(!r.ok) r = await fetch('https://ipwho.is/',{cache:'no-store'});
+    const j = await r.json();
+    appendTo('ipOut', `IP Geo: ${(j.city||'')}, ${(j.region||'')}, ${(j.country||'')}`.replace(/, ,/g,',').replace(/^, /,''));
+  }catch(e){ appendTo('ipOut','IP Geo failed: '+e); }
+};
+
+/* ============ Audio: Tone + Microphone + Analyzer ============ */
+const canvas = el('analyser'); const ctx2d = canvas.getContext('2d');
+let AC=null, osc=null, micStream=null, analyser=null, mediaSrc=null, rafId=null;
+function resizeCanvas(){
+  const dpr = window.devicePixelRatio || 1; const r = canvas.getBoundingClientRect();
+  canvas.width = Math.floor(r.width * dpr); canvas.height = Math.floor(r.height * dpr); ctx2d.setTransform(dpr,0,0,dpr,0,0);
+}
+new ResizeObserver(resizeCanvas).observe(canvas); resizeCanvas();
+function drawAnalyzer(){
+  if(!analyser) return;
+  const N = analyser.frequencyBinCount; const data = new Uint8Array(N);
+  analyser.getByteFrequencyData(data);
+  ctx2d.fillStyle='#000'; ctx2d.fillRect(0,0,canvas.width,canvas.height);
+  ctx2d.fillStyle='#22d3ee';
+  const w = canvas.width / N;
+  for(let i=0;i<N;i++){ const h = (data[i]/255)*canvas.height; ctx2d.fillRect(i*w, canvas.height-h, Math.max(1,w-1), h); }
+  rafId = requestAnimationFrame(drawAnalyzer);
+}
+function ensureAudio(){
+  AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+  if(!analyser){ analyser = AC.createAnalyser(); analyser.fftSize=1024; }
+  return AC;
+}
+const audioBadge = el('audioBadge');
+el('toneStart').onclick = ()=>{
+  const ac = ensureAudio(); if(osc) try{osc.stop();}catch{}
+  osc = ac.createOscillator(); osc.type = el('wave').value;
+  osc.frequency.value = Math.max(40, Math.min(2000, parseFloat(el('freq').value)||440));
+  osc.connect(analyser); analyser.connect(ac.destination); osc.start();
+  audioBadge.textContent='tone'; logTo('audioOut', `Tone: ${osc.type} ${osc.frequency.value} Hz`);
+  cancelAnimationFrame(rafId); drawAnalyzer();
+};
+el('toneStop').onclick = ()=>{ if(osc){try{osc.stop();}catch{} osc.disconnect(); osc=null;} audioBadge.textContent='idle'; };
+el('micStart').onclick = async ()=>{
+  try{
+    const ac = ensureAudio();
+    micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaSrc = ac.createMediaStreamSource(micStream); mediaSrc.connect(analyser);
+    audioBadge.textContent='mic'; cancelAnimationFrame(rafId); drawAnalyzer(); logTo('audioOut','Mic visualization started.');
+  }catch(e){ logTo('audioOut','Mic error: '+e); }
+};
+el('micStop').onclick = ()=>{
+  if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
+  if(mediaSrc){ mediaSrc.disconnect(); mediaSrc=null; } audioBadge.textContent='idle';
+};
+
+/* ============ Web Bluetooth (BLE) ============ */
+let btDevice=null, gatt=null;
+const bleOut='bleOut';
+el('bleReq').onclick = async ()=>{
+  try{
+    if(!navigator.bluetooth) return logTo(bleOut,'Web Bluetooth not supported on this browser.');
+    logTo(bleOut,'Requesting device…');
+    btDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices:true, optionalServices:[] });
+    appendTo(bleOut, 'Selected: ' + (btDevice.name||btDevice.id));
+    btDevice.addEventListener('gattserverdisconnected', ()=> appendTo(bleOut,'Device disconnected.'));
+    gatt = await btDevice.gatt.connect();
+    appendTo(bleOut, 'Connected.');
+  }catch(e){ logTo(bleOut,'Error: '+e); }
+};
+el('bleList').onclick = async ()=>{
+  if(!gatt) return logTo(bleOut,'Connect first.');
+  const svcs = await gatt.getPrimaryServices(); const lines=[];
+  for(const s of svcs){
+    lines.push('Service: '+s.uuid);
+    const chs = await s.getCharacteristics();
+    for(const c of chs) lines.push('  Char: '+c.uuid);
+  }
+  logTo(bleOut, lines.length?lines.join('\n'):'No services.');
+};
+el('bleDisc').onclick = ()=>{ if(btDevice?.gatt?.connected){ btDevice.gatt.disconnect(); logTo(bleOut,'Disconnected.'); } else logTo(bleOut,'No active connection.'); };
+
+/* ============ Battery / Network / Wake Lock ============ */
+let battery=null, batHandlers=[];
+el('batGet').onclick = async ()=>{
+  if(!('getBattery' in navigator)) return logTo('batOut','Battery API not supported.');
+  battery = await navigator.getBattery();
+  const txt = () => `Level ${(battery.level*100).toFixed(0)}% | Charging ${battery.charging} | Discharge ${battery.dischargingTime}s`;
+  logTo('batOut', txt());
+};
+el('batWatch').onclick = ()=>{
+  if(!battery) return logTo('batOut','Get Battery first.');
+  const update = ()=> logTo('batOut', `Level ${(battery.level*100).toFixed(0)}% | Charging ${battery.charging}`);
+  battery.addEventListener('levelchange', update); battery.addEventListener('chargingchange', update); batHandlers=[update,update];
+  appendTo('batOut','\nWatching changes…');
+};
+el('batStop').onclick = ()=>{
+  if(!battery || !batHandlers.length) return;
+  battery.removeEventListener('levelchange', batHandlers[0]); battery.removeEventListener('chargingchange', batHandlers[1]); batHandlers=[];
+  appendTo('batOut','\nStopped watching.');
+};
+el('netGet').onclick = ()=>{
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if(!c) return logTo('netOut','Network Information API not supported.');
+  logTo('netOut', `Type ${c.effectiveType} | Downlink ${c.downlink} Mbps | RTT ${c.rtt} ms | SaveData ${c.saveData}`);
+};
+let wake=null;
+el('wakeOn').onclick = async ()=>{
+  try{
+    if(!('wakeLock' in navigator)) return appendTo('netOut','\nWake Lock not supported.');
+    wake = await navigator.wakeLock.request('screen');
+    appendTo('netOut','\nWake Lock: active.');
+    wake.addEventListener('release', ()=> appendTo('netOut','\nWake Lock released.'));
+  }catch(e){ appendTo('netOut','\nWake error: '+e); }
+};
+el('wakeOff').onclick = async ()=>{ if(wake){ await wake.release(); wake=null; appendTo('netOut','\nWake Lock: released manually.'); } };
+
+/* ============ Clipboard & File ============ */
+el('copyBtn').onclick = async ()=>{
+  try{ await navigator.clipboard.writeText(el('clipText').value); logTo('clipOut','Copied to clipboard!'); }
+  catch(e){ logTo('clipOut','Copy failed: '+e); }
+};
+el('readClipBtn').onclick = async ()=>{
+  try{ const t = await navigator.clipboard.readText(); logTo('clipOut','Clipboard: '+t); }
+  catch(e){ logTo('clipOut','Read failed: '+e); }
+};
+el('readFile').onclick = ()=>{
+  const f = el('fileInp').files[0];
+  if(!f) return logTo('clipOut','No file selected.');
+  const R = new FileReader();
+  R.onload = e => logTo('clipOut', 'File contents (first 400 chars):\n'+ String(e.target.result).slice(0,400));
+  R.onerror = () => logTo('clipOut','File read error');
+  R.readAsText(f);
+};
+
+/* ============ Notifications ============ */
+el('permBtn').onclick = async ()=>{
+  if(!('Notification' in window)) return logTo('permOut','Notifications not supported');
+  const p = await Notification.requestPermission();
+  logTo('permOut','Notification permission: '+p);
+};
+el('notifyBtn').onclick = ()=>{
+  if(Notification.permission !== 'granted') return alert('Grant notification permission first');
+  try{ const n = new Notification('Demo Notification',{ body:'This is a sample notification from the demo.' }); n.onclick = ()=> window.focus(); }
+  catch(e){ alert('Notification failed: '+e); }
+};
+
+/* ============ Permissions Inspector ============ */
+el('inspectPerms').onclick = async ()=>{
+  const names = ['geolocation','camera','microphone','notifications','clipboard-read','clipboard-write','accelerometer','gyroscope','persistent-storage'];
+  if(!navigator.permissions) return logTo('permInspectOut','Permissions API not available.');
+  const res=[];
+  for(const name of names){
+    try{ const p = await navigator.permissions.query({name}); res.push(`${name}: ${p.state}`); }
+    catch(e){ res.push(`${name}: not queryable (${e.message})`); }
+  }
+  logTo('permInspectOut', res.join('\n'));
+};
+
+/* ============ History & Visibility ============ */
+const appHist = []; const visBadge = el('visBadge');
+function record(method){ appHist.push({path:location.pathname, method, ts:new Date().toISOString()}); }
+window.addEventListener('popstate', ()=> record('back/forward'));
+el('pushHome').onclick = ()=>{ history.pushState({p:'/'},'', '/'); record('push'); };
+el('pushAbout').onclick = ()=>{ history.pushState({p:'/about'},'', '/about'); record('push'); };
+el('repUpdated').onclick = ()=>{ history.replaceState({p:'/updated'},'', '/updated'); record('replace'); };
+el('showHist').onclick = ()=> logTo('histOut', appHist.map((e,i)=>`${i+1}. ${e.path} — ${e.method} @ ${e.ts}`).join('\n') || '(empty)');
+document.addEventListener('visibilitychange', ()=>{ visBadge.textContent = 'visibility: ' + (document.hidden ? 'hidden' : 'visible'); });
+
+/* ============ Cross-Tab Sync ============ */
+const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('everything-demo') : null;
+el('tabSend').onclick = ()=>{
+  const msg = el('tabMsg').value || '(empty)';
+  const pay = {from:location.pathname, msg, ts:Date.now()};
+  if(bc) bc.postMessage(pay);
+  localStorage.setItem('demoPing', JSON.stringify(pay)); // also triggers storage in other tabs
+  appendTo('tabOut','Sent: '+JSON.stringify(pay));
+};
+el('tabPing').onclick = ()=>{
+  const pay = {type:'ping', ts:Date.now()};
+  if(bc) bc.postMessage(pay);
+  localStorage.setItem('demoPing', JSON.stringify(pay));
+  appendTo('tabOut','Ping sent @ '+new Date(pay.ts).toLocaleTimeString());
+};
+if(bc){ bc.onmessage = e => appendTo('tabOut','BC recv: '+JSON.stringify(e.data)); }
+window.addEventListener('storage', e => { if(e.key==='demoPing' && e.newValue){ appendTo('tabOut','storage recv: '+e.newValue); } });
+
+/* ============ Floating window quick actions ============ */
+el('winGeo').onclick = ()=> el('btnGeo').click();
+let winWake=false;
+el('winWake').onclick = async ()=>{
+  if(!winWake){ el('wakeOn').click(); winWake=true; el('floatOut').textContent='Wake Lock requested.'; }
+  else { el('wakeOff').click(); winWake=false; el('floatOut').textContent='Wake Lock released.'; }
+};
+el('winTone').onclick = ()=> el('toneStart').click();
+
+console.log('Everything Web Demo loaded. Some features require HTTPS/localhost & user permission.');
 </script>
 </body>
 </html>
