@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="female" language="en-IN">
+        Hello. This is an automated call from your Exotel system.
+        Your voice message is now working successfully.
+        Thank you.
+    </Say>
+</Response>
